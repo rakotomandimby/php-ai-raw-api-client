@@ -17,11 +17,11 @@ It is useful if you want a very small PHP starting point for provider integratio
 
 ## Repository structure
 
-- `/openai/openai-client.php` — calls the OpenAI Responses API
+- `/openai/openai-client.php` — calls the OpenAI `/v1/responses` endpoint hardcoded in this repo
 - `/openai/example.php` — runnable OpenAI example
 - `/anthropic/anthropic-client.php` — calls the Anthropic Messages API
 - `/anthropic/example.php` — runnable Anthropic example
-- `/google-ai/google-ai-client.php` — calls the Google AI API endpoint used by this repo
+- `/google-ai/google-ai-client.php` — calls the Google AI `/v1beta/interactions` endpoint hardcoded in this repo
 - `/google-ai/example.php` — runnable Google AI example
 
 ## What the code does
@@ -147,13 +147,13 @@ Because each function returns the full decoded API payload, your application can
 
 ## Response parsing notes
 
-The example files show the expected text location for each provider:
+The bundled example files extract text from the response shapes expected by the current scripts:
 
 - OpenAI: `output[*].content[*].text` when `type === "output_text"`
 - Anthropic: `content[*].text` when `type === "text"`
 - Google AI: `steps[*].content[*].text` when the step type is `model_output`
 
-If the provider changes its schema or you request other output types, update the extraction logic in the example or in your application code.
+These paths describe the structures handled by the code in this repository. If the provider changes its schema or you request other output types, update the extraction logic in the example or in your application code.
 
 ## Error handling
 
