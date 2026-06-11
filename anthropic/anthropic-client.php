@@ -12,6 +12,11 @@
  */
 function call_anthropic_message(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
 {
+    $max_tokens = [
+        'claude-haiku-4-5' => 64000,
+        'claude-sonnet-4-6' => 64000,
+        'claude-opus-4-8' => 128000
+];
     // Resolve the API key
     $apiKey = $apiKey ?? getenv('ANTHROPIC_API_KEY');
     if (empty($apiKey)) {
@@ -23,7 +28,7 @@ function call_anthropic_message(string $instruction, string $prompt, string $mod
     // Build the request payload
     $payload = [
         'model'      => $model,
-        'max_tokens' => 2048,
+        'max_tokens' => $max_tokens[$model] ?? 64000, 
         'messages'   => [
             [
                 'role'    => 'user',

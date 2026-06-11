@@ -34,7 +34,7 @@ function call_gemini_interaction(string $instruction, string $prompt, string $mo
     $payload['generation_config'] = [
         'temperature' => 0.7,
         'top_p' => 0.95,
-        'max_output_tokens' => 2048,
+        'max_output_tokens' => 64000,
     ];
 
     // Initialize cURL
