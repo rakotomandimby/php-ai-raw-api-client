@@ -13,9 +13,9 @@
 function call_gemini_interaction(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
 {
     // Resolve the API key
-    $apiKey = $apiKey ?? getenv('GOOGLE_API_KEY');
+    $apiKey = $apiKey ?? getenv('GOOGLEAI_API_KEY');
     if (empty($apiKey)) {
-        throw new Exception('Gemini API key is required. Please provide it or set the GOOGLE_API_KEY environment variable.');
+        throw new Exception('Gemini API key is required. Please provide it or set the GOOGLEAI_API_KEY environment variable.');
     }
 
     $url = 'https://generativelanguage.googleapis.com/v1beta/interactions';
@@ -27,17 +27,12 @@ function call_gemini_interaction(string $instruction, string $prompt, string $mo
     ];
 
     if ($instruction !== '') {
-        $payload['system_instruction'] = [
-            'parts' => [
-                ['text' => $instruction]
-            ]
-        ];
+        $payload['system_instruction'] = $instruction; 
     }
 
     // Hardcode generation configuration parameters as per requirement
     $payload['generation_config'] = [
         'temperature' => 0.7,
-        'top_k' => 40,
         'top_p' => 0.95,
         'max_output_tokens' => 2048,
     ];
