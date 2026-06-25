@@ -9,7 +9,7 @@ require_once __DIR__ . '/deepseek-client.php';
 try {
     $instruction = "You are a poetic assistant. Answer in rhyme.";
     $prompt = "Explain why the sky is blue in one sentence.";
-    $model = "deepseek-v4-pro"; // User's preferred model
+    $model = "deepseek-chat"; // User's preferred model
 
     echo "Sending request to DeepSeek Chat Completions API...\n";
     echo "Model: $model\n";
@@ -41,4 +41,3 @@ try {
 } catch (Exception $e) {
     echo "Error occurred: " . $e->getMessage() . "\n";
 }
-

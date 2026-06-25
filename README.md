@@ -23,6 +23,8 @@ It is useful if you want a very small PHP starting point for provider integratio
 - `/anthropic/example.php` — runnable Anthropic example
 - `/google-ai/google-ai-client.php` — calls the Google AI `/v1beta/interactions` endpoint hardcoded in this repo
 - `/google-ai/example.php` — runnable Google AI example
+- `/deepseek/deepseek-client.php` — calls the DeepSeek Chat Completions API
+- `/deepseek/example.php` — runnable DeepSeek example
 
 ## What the code does
 
@@ -31,8 +33,9 @@ Each client file exposes one function:
 - `call_openai_response(string $instruction, string $prompt, string $model, ?string $apiKey = null): array`
 - `call_anthropic_message(string $instruction, string $prompt, string $model, ?string $apiKey = null): array`
 - `call_gemini_interaction(string $instruction, string $prompt, string $model, ?string $apiKey = null): array`
+- `call_deepseek_chat(string $instruction, string $prompt, string $model, ?string $apiKey = null): array`
 
-All three functions follow the same pattern:
+All four functions follow the same pattern:
 
 1. resolve the API key from an argument or environment variable
 2. build a provider-specific request payload
@@ -55,14 +58,16 @@ All three functions follow the same pattern:
 | OpenAI | `call_openai_response()` | `https://api.openai.com/v1/responses` | `OPENAI_API_KEY` |
 | Anthropic | `call_anthropic_message()` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` |
 | Google AI | `call_gemini_interaction()` | `https://generativelanguage.googleapis.com/v1beta/interactions` | `GOOGLEAI_API_KEY` |
+| DeepSeek | `call_deepseek_chat()` | `https://api.deepseek.com/chat/completions` | `DEEPSEEK_API_KEY` |
 
 ## Default request behavior
 
 The scripts keep the interface intentionally small and hardcode some generation settings:
 
 - OpenAI: `temperature=0.7`, `top_p=0.95`
-- Anthropic: `temperature=0.7`, `max_tokens=2048`
-- Google AI: `temperature=0.7`, `top_p=0.95`, `max_output_tokens=2048`
+- Anthropic: `temperature=0.7`, model-specific `max_tokens` with a `64000` fallback
+- Google AI: `temperature=0.7`, `top_p=0.95`, `max_output_tokens=64000`
+- DeepSeek: `temperature=0.7`, `top_p=0.95`, `stream=false`
 
 If you need other parameters, edit the payload in the corresponding client file.
 
@@ -80,6 +85,7 @@ Examples:
 export OPENAI_API_KEY="your-openai-key"
 export ANTHROPIC_API_KEY="your-anthropic-key"
 export GOOGLEAI_API_KEY="your-google-ai-key"
+export DEEPSEEK_API_KEY="your-deepseek-key"
 ```
 
 ### 3. Run one of the included examples
@@ -88,6 +94,7 @@ export GOOGLEAI_API_KEY="your-google-ai-key"
 php openai/example.php
 php anthropic/example.php
 php google-ai/example.php
+php deepseek/example.php
 ```
 
 Each example:
@@ -139,6 +146,19 @@ $response = call_gemini_interaction(
 );
 ```
 
+### DeepSeek
+
+```php
+<?php
+require_once __DIR__ . '/deepseek/deepseek-client.php';
+
+$response = call_deepseek_chat(
+    'You are a concise assistant.',
+    'Summarize the purpose of this repository.',
+    'deepseek-chat'
+);
+```
+
 Because each function returns the full decoded API payload, your application can either:
 
 - extract only the generated text
@@ -152,6 +172,7 @@ The bundled example files extract text from the response shapes expected by the 
 - OpenAI: `output[*].content[*].text` when `type === "output_text"`
 - Anthropic: `content[*].text` when `type === "text"`
 - Google AI: `steps[*].content[*].text` when the step type is `model_output`
+- DeepSeek: `choices[*].message.content`
 
 These paths describe the structures handled by the code in this repository. If the provider changes its schema or you request other output types, update the extraction logic in the example or in your application code.
 
