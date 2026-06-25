@@ -5,7 +5,7 @@
  *
  * @param string $instruction The system instruction to steer the model's behavior.
  * @param string $prompt The user prompt/input for the model.
- * @param string $model The model name (e.g., 'deepseek-v4-pro').
+ * @param string $model The model name (e.g., 'deepseek-chat').
  * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the DEEPSEEK_API_KEY environment variable.
  * @return array The decoded JSON response from the API.
  * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
@@ -33,14 +33,16 @@ function call_deepseek_chat(string $instruction, string $prompt, string $model, 
         'content' => $prompt,
     ];
 
-    // Build the request payload matching the documentation specifications
+    // Build the request payload
     $payload = [
-        'model'            => $model,
-        'messages'         => $messages,
-        'thinking'         => ['type' => 'enabled'],
-        'reasoning_effort' => 'high',
-        'stream'           => false,
+        'model' => $model,
+        'messages' => $messages,
+        'stream' => false,
     ];
+
+    // Hardcode generation configuration parameters as per requirement
+    $payload['temperature'] = 0.7;
+    $payload['top_p'] = 0.95;
 
     // Initialize cURL
     $ch = curl_init($url);
@@ -88,4 +90,3 @@ function call_deepseek_chat(string $instruction, string $prompt, string $model, 
 
     return $decoded;
 }
-
