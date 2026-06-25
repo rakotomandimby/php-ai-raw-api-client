@@ -3,21 +3,25 @@
 require_once __DIR__ . '/openai/openai-client.php';
 require_once __DIR__ . '/anthropic/anthropic-client.php';
 require_once __DIR__ . '/google-ai/google-ai-client.php';
+require_once __DIR__ . '/deepseek/deepseek-client.php';
 
 class AiApiClient
 {
   private ?string $openaiApiKey;
   private ?string $anthropicApiKey;
   private ?string $googleAiApiKey;
+  private ?string $deepseekApiKey;
 
   public function __construct(
     ?string $openaiApiKey = null,
     ?string $anthropicApiKey = null,
-    ?string $googleAiApiKey = null
+    ?string $googleAiApiKey = null,
+    ?string $deepseekApiKey = null
   ) {
     $this->openaiApiKey = $openaiApiKey;
     $this->anthropicApiKey = $anthropicApiKey;
     $this->googleAiApiKey = $googleAiApiKey;
+    $this->deepseekApiKey = $deepseekApiKey;
     }
 
     public function askGoogleAi(string $systemInstruction, string $userPrompt, string $model): string
@@ -54,6 +58,18 @@ class AiApiClient
         );
 
       return $this->extractAnthropicText($response);
+    }
+
+    public function askDeepSeek(string $systemInstruction, string $userPrompt, string $model): string
+    {
+      $response = call_deepseek_chat(
+        $systemInstruction,
+        $userPrompt,
+        $model,
+        $this->deepseekApiKey
+        );
+
+      return $this->extractDeepSeekText($response);
     }
 
     private function extractGoogleAiText(array $response): string
@@ -115,6 +131,21 @@ class AiApiClient
         }
 
         return $outputText;
+    }
+
+    private function extractDeepSeekText(array $response): string
+    {
+      $outputText = '';
+
+      if (!empty($response['choices'])) {
+        foreach ($response['choices'] as $choice) {
+          if (isset($choice['message']['content'])) {
+            $outputText .= $choice['message']['content'];
+          }
+        }
+      }
+
+      return $outputText;
     }
 }
 

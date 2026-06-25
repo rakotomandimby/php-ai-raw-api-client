@@ -1,0 +1,91 @@
+<?php
+
+/**
+ * Calls the DeepSeek Chat Completions API.
+ *
+ * @param string $instruction The system instruction to steer the model's behavior.
+ * @param string $prompt The user prompt/input for the model.
+ * @param string $model The model name (e.g., 'deepseek-v4-pro').
+ * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the DEEPSEEK_API_KEY environment variable.
+ * @return array The decoded JSON response from the API.
+ * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
+ */
+function call_deepseek_chat(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
+{
+    // Resolve the API key
+    $apiKey = $apiKey ?? getenv('DEEPSEEK_API_KEY');
+    if (empty($apiKey)) {
+        throw new Exception('DeepSeek API key is required. Please provide it or set the DEEPSEEK_API_KEY environment variable.');
+    }
+
+    $url = 'https://api.deepseek.com/chat/completions';
+
+    // Build messages payload
+    $messages = [];
+    if ($instruction !== '') {
+        $messages[] = [
+            'role'    => 'system',
+            'content' => $instruction,
+        ];
+    }
+    $messages[] = [
+        'role'    => 'user',
+        'content' => $prompt,
+    ];
+
+    // Build the request payload matching the documentation specifications
+    $payload = [
+        'model'            => $model,
+        'messages'         => $messages,
+        'thinking'         => ['type' => 'enabled'],
+        'reasoning_effort' => 'high',
+        'stream'           => false,
+    ];
+
+    // Initialize cURL
+    $ch = curl_init($url);
+    if ($ch === false) {
+        throw new Exception('Failed to initialize cURL session.');
+    }
+
+    $jsonData = json_encode($payload);
+    if ($jsonData === false) {
+        throw new Exception('Failed to encode payload to JSON: ' . json_last_error_msg());
+    }
+
+    // Set cURL options
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiKey,
+    ]);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+    // Execute the request
+    $response = curl_exec($ch);
+    $errorMsg = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false) {
+        throw new Exception('cURL Request failed: ' . $errorMsg);
+    }
+
+    $decoded = json_decode($response, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Failed to decode JSON response: ' . json_last_error_msg() . '. Response was: ' . $response);
+    }
+
+    // Check for HTTP errors or API errors
+    if ($httpCode < 200 || $httpCode >= 300) {
+        $errorMessage = $decoded['error']['message'] ?? 'Unknown API error';
+        $errorCode    = $decoded['error']['code'] ?? $httpCode;
+        throw new Exception("DeepSeek API error (HTTP $httpCode, Code $errorCode): $errorMessage", $httpCode);
+    }
+
+    return $decoded;
+}
+
