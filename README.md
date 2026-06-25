@@ -50,6 +50,7 @@ All four functions follow the same pattern:
 - PHP cURL extension enabled
 - outbound network access to the provider API
 - a valid API key for the provider you want to call
+- Composer if you want to autoload the namespaced `AiApiClient` class from another project
 
 ## Provider configuration
 
@@ -104,6 +105,23 @@ Each example:
 - calls the provider function
 - walks the provider response structure
 - prints the final generated text to stdout
+
+## Using `AiApiClient` in your own code
+
+`AiApiClient.php` now declares the `Rakotomandimby\PhpAiRawApiClient` namespace.
+
+If another project uses this repository through Composer, make sure Composer's autoloader is loaded and import the class with its namespace:
+
+```php
+<?php
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Rakotomandimby\PhpAiRawApiClient\AiApiClient;
+
+$client = new AiApiClient(
+    openaiApiKey: getenv('OPENAI_API_KEY') ?: null
+);
+```
 
 ## Using the client functions in your own code
 
