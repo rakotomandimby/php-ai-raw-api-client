@@ -1,0 +1,13 @@
+{
+  "name": "rakotomandimby/php-ai-raw-api-client",
+  "description": "Small standalone PHP examples for calling raw HTTP APIs from major LLM providers.",
+  "type": "library",
+  "require": {
+    "php": ">=8.0"
+  },
+  "autoload": {
+    "classmap": [
+      "AiApiClient.php"
+    ]
+  }
+}

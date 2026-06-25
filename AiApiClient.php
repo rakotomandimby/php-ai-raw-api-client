@@ -1,5 +1,7 @@
 <?php
 
+namespace Rakotomandimby\PhpAiRawApiClient;
+
 require_once __DIR__ . '/openai/openai-client.php';
 require_once __DIR__ . '/anthropic/anthropic-client.php';
 require_once __DIR__ . '/google-ai/google-ai-client.php';
@@ -148,4 +150,3 @@ class AiApiClient
       return $outputText;
     }
 }
-
