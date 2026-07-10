@@ -1,6 +1,6 @@
 # php-ai-raw-api-client
 
-Small standalone PHP examples for calling raw HTTP APIs from major LLM providers without a framework or SDK, supporting multi-turn conversations.
+Small standalone PHP library for calling raw HTTP APIs from major LLM providers without a framework or SDK, supporting multi-turn conversations through a unified OOP interface.
 
 ## Purpose
 
@@ -20,14 +20,10 @@ It is useful if you want a very small PHP starting point for provider integratio
 ## Repository Structure
 
 - [AiApiClient.php](file:///home/mihamina/Projects/php-ai-raw-api-client/AiApiClient.php) — The main Object-Oriented wrapper providing a unified interface across all providers.
-- [/openai/openai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/openai/openai-client.php) — Standalone function calling the OpenAI `/v1/responses` API.
-- [/openai/example.php](file:///home/mihamina/Projects/php-ai-raw-api-client/openai/example.php) — Runnable multi-turn example for OpenAI.
-- [/anthropic/anthropic-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/anthropic/anthropic-client.php) — Standalone function calling the Anthropic Messages API.
-- [/anthropic/example.php](file:///home/mihamina/Projects/php-ai-raw-api-client/anthropic/example.php) — Runnable multi-turn example for Anthropic.
-- [/google-ai/google-ai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/google-ai/google-ai-client.php) — Standalone function calling the Google AI `/v1beta/interactions` API.
-- [/google-ai/example.php](file:///home/mihamina/Projects/php-ai-raw-api-client/google-ai/example.php) — Runnable multi-turn example for Google AI.
-- [/deepseek/deepseek-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/deepseek/deepseek-client.php) — Standalone function calling the DeepSeek Chat Completions API.
-- [/deepseek/example.php](file:///home/mihamina/Projects/php-ai-raw-api-client/deepseek/example.php) — Runnable multi-turn example for DeepSeek.
+- [/openai/openai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/openai/openai-client.php) — Internal client calling the OpenAI `/v1/responses` API.
+- [/anthropic/anthropic-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/anthropic/anthropic-client.php) — Internal client calling the Anthropic Messages API.
+- [/google-ai/google-ai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/google-ai/google-ai-client.php) — Internal client calling the Google AI `/v1beta/interactions` API.
+- [/deepseek/deepseek-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/deepseek/deepseek-client.php) — Internal client calling the DeepSeek Chat Completions API.
 
 ## Requirements
 
@@ -38,12 +34,12 @@ It is useful if you want a very small PHP starting point for provider integratio
 
 ## Provider Configuration
 
-| Provider | Client Function | Endpoint URL | Environment Variable | Header Credentials |
+| Provider | OOP Method | Endpoint URL | Environment Variable | Header Credentials |
 | --- | --- | --- | --- | --- |
-| **OpenAI** | `call_openai_response()` | `https://api.openai.com/v1/responses` | `OPENAI_API_KEY` | `Authorization: Bearer <KEY>` |
-| **Anthropic** | `call_anthropic_message()` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` | `x-api-key: <KEY>`, `anthropic-version: 2023-06-01` |
-| **Google AI** | `call_gemini_interaction()` | `https://generativelanguage.googleapis.com/v1beta/interactions` | `GOOGLEAI_API_KEY` | `x-goog-api-key: <KEY>`, `Api-Revision: 2026-05-20` |
-| **DeepSeek** | `call_deepseek_chat()` | `https://api.deepseek.com/chat/completions` | `DEEPSEEK_API_KEY` | `Authorization: Bearer <KEY>` |
+| **OpenAI** | `askOpenai()` | `https://api.openai.com/v1/responses` | `OPENAI_API_KEY` | `Authorization: Bearer <KEY>` |
+| **Anthropic** | `askAnthropic()` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` | `x-api-key: <KEY>`, `anthropic-version: 2023-06-01` |
+| **Google AI** | `askGoogleAi()` | `https://generativelanguage.googleapis.com/v1beta/interactions` | `GOOGLEAI_API_KEY` | `x-goog-api-key: <KEY>`, `Api-Revision: 2026-05-20` |
+| **DeepSeek** | `askDeepSeek()` | `https://api.deepseek.com/chat/completions` | `DEEPSEEK_API_KEY` | `Authorization: Bearer <KEY>` |
 
 ### Default Request Settings (Hardcoded)
 
@@ -57,22 +53,27 @@ To keep the interface minimal, generation settings are hardcoded inside each cli
 
 ## Detailed Input Format
 
-All client functions and class methods accept a uniform input format for constructing conversations.
+All class methods accept a uniform input format for constructing conversations.
 
-### 1. The `$instruction` Parameter (System Instruction)
+### 1. The `$systemInstruction` Parameter (System Instruction)
+
 A `string` containing system instructions or guidelines to steer the model's behavior. If empty (`""`), it is ignored or omitted from the request.
+
+How it maps internally per provider:
 - **OpenAI**: Mapped to the `"instructions"` field at the root of the payload.
 - **Anthropic**: Mapped to the `"system"` field at the root of the payload.
 - **Google AI**: Mapped to the `"system_instruction"` field at the root of the payload.
 - **DeepSeek**: Prepended to the messages array as a message object with the role `"system"`.
 
 ### 2. The `$messages` Parameter (Conversation History)
+
 An `array` of associative arrays representing the conversation history. Each message object contains:
 - `role` (string): The sender of the message.
 - `content` (string): The text content of the message.
 
 #### Role Mappings per Provider
-Since different APIs expect different values for roles, the clients handle role propagation or mapping under the hood:
+
+Since different APIs expect different values for roles, the wrapper handles role propagation or mapping under the hood:
 
 | Provider | Supported User Role | Supported Assistant Role | Notes / Constraints |
 | --- | --- | --- | --- |
@@ -82,292 +83,124 @@ Since different APIs expect different values for roles, the clients handle role 
 | **DeepSeek** | `"user"` | `"assistant"` | The client maps the messages directly, prepending the system prompt if set. |
 
 #### Message Input Structure Example
+
 ```php
 $messages = [
     ['role' => 'user', 'content' => 'My name is Mihamina.'],
-    ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'], // Use 'model' role when calling Google AI directly
+    ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'], // Use 'model' role when calling Google AI
     ['role' => 'user', 'content' => 'What is my name?']
 ];
 ```
+
+### 3. The `$model` Parameter (Model Name)
+
+A `string` specifying the exact model identifier to use. Each provider has its own model naming convention:
+
+| Provider | Example Model Values |
+| --- | --- |
+| **OpenAI** | `'gpt-5.4-mini'`, `'gpt-5.4'` |
+| **Anthropic** | `'claude-haiku-4-5'`, `'claude-sonnet-4-5'`, `'claude-opus-4'` |
+| **Google AI** | `'gemini-3.5-flash'`, `'gemini-3.5-pro'` |
+| **DeepSeek** | `'deepseek-chat'`, `'deepseek-reasoner'` |
 
 ---
 
 ## Detailed Output Format
 
-The client supports two distinct output formats:
-1. **Raw Decoded JSON Array** (returned by standalone client functions).
-2. **Uniform Output Array** (returned by the OOP class methods).
-
-### 1. Standalone Client Functions (Raw Output)
-Standalone client functions return the complete, decoded response directly from the provider's REST API.
-
-#### A. OpenAI Response (`call_openai_response`)
-Returns a JSON-decoded array matching OpenAI's Responses API:
-```php
-[
-    "id" => "resp_01j2a3b4c5d6e7f8g9h0i1j2k3",
-    "object" => "response",
-    "created" => 1718912345,
-    "model" => "gpt-5.4-mini",
-    "output" => [
-        [
-            "type" => "message",
-            "content" => [
-                [
-                    "type" => "output_text",
-                    "text" => "Your name is Mihamina."
-                ]
-            ]
-        ]
-    ]
-]
-```
-- **Text Extraction Path**: Loop through `$response['output']`, find item where `type === 'message'`, loop through its `content` items, and concatenate where `type === 'output_text'`.
-
-#### B. Anthropic Response (`call_anthropic_message`)
-Returns a JSON-decoded array matching Anthropic's Messages API:
-```php
-[
-    "id" => "msg_013Zva5t95ca8ZgCr5ir561A",
-    "type" => "message",
-    "role" => "assistant",
-    "content" => [
-        [
-            "type" => "text",
-            "text" => "Your name is Mihamina."
-        ]
-    ],
-    "model" => "claude-haiku-4-5",
-    "stop_reason" => "end_turn",
-    "stop_sequence" => null,
-    "usage" => [
-        "input_tokens" => 25,
-        "output_tokens" => 8
-    ]
-]
-```
-- **Text Extraction Path**: Loop through `$response['content']` and concatenate where `type === 'text'`.
-
-#### C. Google AI Response (`call_gemini_interaction`)
-Returns a JSON-decoded array matching the Google AI Interactions API using the `steps` schema:
-```php
-[
-    "id" => "interaction_01j2a3b4c5d6e7f8g9h0i1j2k3",
-    "steps" => [
-        [
-            "type" => "model_output",
-            "content" => [
-                [
-                    "type" => "text",
-                    "text" => "Your name is Mihamina."
-                ]
-            ]
-        ]
-    ]
-]
-```
-- **Text Extraction Path**: Loop through `$response['steps']`, find step where `type === 'model_output'`, loop through its `content` items, and concatenate where `type === 'text'`.
-
-#### D. DeepSeek Response (`call_deepseek_chat`)
-Returns a JSON-decoded array matching the standard OpenAI Chat Completions API schema:
-```php
-[
-    "id" => "chatcmpl-765f34bdde23405786ba11cc986d34e1",
-    "object" => "chat.completion",
-    "created" => 1718912345,
-    "model" => "deepseek-chat",
-    "choices" => [
-        [
-            "index" => 0,
-            "message" => [
-                "role" => "assistant",
-                "content" => "Your name is Mihamina."
-            ],
-            "finish_reason" => "stop"
-        ]
-    ],
-    "usage" => [
-        "prompt_tokens" => 25,
-        "completion_tokens" => 8,
-        "total_tokens" => 33
-    ]
-]
-```
-- **Text Extraction Path**: Loop through `$response['choices']` and concatenate the value under `message.content`.
-
----
-
-### 2. OOP Wrapper Class (Uniform Output)
-When using the [AiApiClient](file:///home/mihamina/Projects/php-ai-raw-api-client/AiApiClient.php) class wrapper, all responses are normalized into a unified, provider-agnostic structure:
+All four `AiApiClient` methods (`askOpenai()`, `askAnthropic()`, `askGoogleAi()`, `askDeepSeek()`) return a **uniform associative array** with the following structure:
 
 ```php
 [
-    'text'           => 'Your name is Mihamina.',  // The complete extracted text response
-    'interaction_id' => 'resp_01j2a3...',          // Unique response ID (null if missing)
+    'text'           => string,       // The complete extracted text response from the model
+    'interaction_id' => string|null,  // Unique response ID assigned by the provider (null if unavailable)
 ]
 ```
 
----
+### Output Field Details
 
-## Standalone Functions Usage
+#### `'text'` (string)
 
-To use the standalone functions directly, import the specific client file and pass the system instructions, message history, model name, and optional API key:
+The full text content generated by the model. This value is extracted and concatenated from the provider's native response schema automatically by the wrapper. You never need to manually parse the raw API response.
 
-### OpenAI
+- The text is returned as a plain string.
+- If the model produced multiple text blocks in a single response (some providers support this), they are concatenated into a single string.
+- If no text content was found in the response, this field will be an empty string (`''`).
 
-```php
-require_once __DIR__ . '/openai/openai-client.php';
+Internally, the extraction logic varies per provider:
+- **OpenAI**: Iterates over `response['output']`, finds items where `type === 'message'`, then iterates over their `content` items and concatenates those where `type === 'output_text'`.
+- **Anthropic**: Iterates over `response['content']` and concatenates items where `type === 'text'`.
+- **Google AI**: Iterates over `response['steps']`, finds steps where `type === 'model_output'`, then iterates over their `content` items and concatenates those where `type === 'text'`.
+- **DeepSeek**: Iterates over `response['choices']` and concatenates the `message.content` value from each choice.
 
-try {
-    $messages = [
-        ['role' => 'user', 'content' => 'My name is Mihamina.'],
-        ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'],
-        ['role' => 'user', 'content' => 'What is my name?']
-    ];
+#### `'interaction_id'` (string|null)
 
-    $response = call_openai_response(
-        instruction: 'You are a helpful assistant.',
-        messages: $messages,
-        model: 'gpt-5.4-mini'
-    );
+A unique identifier for the API response, as assigned by the provider. This is useful for:
+- Logging and auditing API calls.
+- Referencing a specific response in support requests to the provider.
+- Correlating responses in multi-step workflows.
 
-    // Extract text manually from raw response
-    $text = '';
-    foreach ($response['output'] as $item) {
-        if (($item['type'] ?? '') === 'message') {
-            foreach ($item['content'] as $c) {
-                if (($c['type'] ?? '') === 'output_text') {
-                    $text .= $c['text'] ?? '';
-                }
-            }
-        }
-    }
-    echo "Model Output: " . $text . "\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
+The value is extracted from the `id` field of the raw provider response. If the provider does not return an `id` field, this will be `null`.
 
-### Anthropic
-
-```php
-require_once __DIR__ . '/anthropic/anthropic-client.php';
-
-try {
-    $messages = [
-        ['role' => 'user', 'content' => 'My name is Mihamina.'],
-        ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'],
-        ['role' => 'user', 'content' => 'What is my name?']
-    ];
-
-    $response = call_anthropic_message(
-        instruction: 'You are a helpful assistant.',
-        messages: $messages,
-        model: 'claude-haiku-4-5'
-    );
-
-    // Extract text manually from raw response
-    $text = '';
-    foreach ($response['content'] as $c) {
-        if (($c['type'] ?? '') === 'text') {
-            $text .= $c['text'] ?? '';
-        }
-    }
-    echo "Model Output: " . $text . "\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
-
-### Google AI (Gemini)
-
-```php
-require_once __DIR__ . '/google-ai/google-ai-client.php';
-
-try {
-    // Note: Gemini expects the assistant role to be 'model'
-    $messages = [
-        ['role' => 'user', 'content' => 'My name is Mihamina.'],
-        ['role' => 'model', 'content' => 'Hello Mihamina! How can I help you today?'],
-        ['role' => 'user', 'content' => 'What is my name?']
-    ];
-
-    $response = call_gemini_interaction(
-        instruction: 'You are a helpful assistant.',
-        messages: $messages,
-        model: 'gemini-3.5-flash'
-    );
-
-    // Extract text manually from raw response
-    $text = '';
-    foreach ($response['steps'] as $step) {
-        if (($step['type'] ?? '') === 'model_output') {
-            foreach ($step['content'] as $c) {
-                if (($c['type'] ?? '') === 'text') {
-                    $text .= $c['text'] ?? '';
-                }
-            }
-        }
-    }
-    echo "Model Output: " . $text . "\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
-
-### DeepSeek
-
-```php
-require_once __DIR__ . '/deepseek/deepseek-client.php';
-
-try {
-    $messages = [
-        ['role' => 'user', 'content' => 'My name is Mihamina.'],
-        ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'],
-        ['role' => 'user', 'content' => 'What is my name?']
-    ];
-
-    $response = call_deepseek_chat(
-        instruction: 'You are a helpful assistant.',
-        messages: $messages,
-        model: 'deepseek-chat'
-    );
-
-    // Extract text manually from raw response
-    $text = '';
-    foreach ($response['choices'] as $choice) {
-        if (isset($choice['message']['content'])) {
-            $text .= $choice['message']['content'];
-        }
-    }
-    echo "Model Output: " . $text . "\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
-}
-```
+Example values per provider:
+- **OpenAI**: `"resp_01j2a3b4c5d6e7f8g9h0i1j2k3"`
+- **Anthropic**: `"msg_013Zva5t95ca8ZgCr5ir561A"`
+- **Google AI**: `"interaction_01j2a3b4c5d6e7f8g9h0i1j2k3"`
+- **DeepSeek**: `"chatcmpl-765f34bdde23405786ba11cc986d34e1"`
 
 ---
 
 ## OOP Wrapper Usage (`AiApiClient`)
 
-The `AiApiClient` class provides a unified layer that abstracts raw payloads and standardizes the output schema into a clean `['text' => string, 'interaction_id' => string|null]` response.
+### 1. Instantiation
 
-### 1. Autoloading via Composer
-If importing this library in a Composer-backed project, autoload classes using:
-```php
-require_once __DIR__ . '/vendor/autoload.php';
-
-use Rakotomandimby\PhpAiRawApiClient\AiApiClient;
-```
-
-### 2. Multi-turn Conversation OOP Example
+Import and instantiate the `AiApiClient` class. API keys can be passed explicitly or resolved from environment variables automatically when set to `null`:
 
 ```php
 require_once __DIR__ . '/AiApiClient.php';
 
 use Rakotomandimby\PhpAiRawApiClient\AiApiClient;
 
-// Initialize client with keys (null values will attempt to fall back to environment variables)
+// Option A: Pass API keys explicitly
+$client = new AiApiClient(
+    openaiApiKey: 'sk-your-openai-key',
+    anthropicApiKey: 'sk-ant-your-anthropic-key',
+    googleAiApiKey: 'AIzaSy-your-google-key',
+    deepseekApiKey: 'sk-your-deepseek-key'
+);
+
+// Option B: Let keys fall back to environment variables
+//   OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLEAI_API_KEY, DEEPSEEK_API_KEY
+$client = new AiApiClient(
+    openaiApiKey: null,
+    anthropicApiKey: null,
+    googleAiApiKey: null,
+    deepseekApiKey: null
+);
+```
+
+You only need to provide keys for the providers you intend to use. Calling a method for a provider whose key is missing (both argument and environment variable) will throw an `Exception`.
+
+### 2. Calling a Provider
+
+Each provider has a dedicated method with the same signature:
+
+```php
+public function askOpenai(string $systemInstruction, array $messages, string $model): array
+public function askAnthropic(string $systemInstruction, array $messages, string $model): array
+public function askGoogleAi(string $systemInstruction, array $messages, string $model): array
+public function askDeepSeek(string $systemInstruction, array $messages, string $model): array
+```
+
+All four methods return the same uniform output array: `['text' => string, 'interaction_id' => string|null]`.
+
+### 3. Complete Multi-Provider Example
+
+```php
+require_once __DIR__ . '/AiApiClient.php';
+
+use Rakotomandimby\PhpAiRawApiClient\AiApiClient;
+
+// Initialize client (keys from environment variables)
 $client = new AiApiClient(
     openaiApiKey: getenv('OPENAI_API_KEY') ?: null,
     anthropicApiKey: getenv('ANTHROPIC_API_KEY') ?: null,
@@ -375,7 +208,7 @@ $client = new AiApiClient(
     deepseekApiKey: getenv('DEEPSEEK_API_KEY') ?: null
 );
 
-// Define conversation history
+// Define conversation history (provider-agnostic format)
 $messages = [
     ['role' => 'user', 'content' => 'My name is Mihamina.'],
     ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'],
@@ -383,7 +216,36 @@ $messages = [
 ];
 
 try {
-    // 1. Google AI (Gemini expects 'model' role for assistant, so we adjust it for Google AI)
+    // --- OpenAI ---
+    $resultOpenai = $client->askOpenai(
+        systemInstruction: 'You are a concise assistant.',
+        messages: $messages,
+        model: 'gpt-5.4-mini'
+    );
+    // $resultOpenai = [
+    //     'text'           => 'Your name is Mihamina.',
+    //     'interaction_id' => 'resp_01j2a3b4c5d6e7f8g9h0i1j2k3'
+    // ]
+    echo "OpenAI:\n";
+    echo "  Response text : {$resultOpenai['text']}\n";
+    echo "  Interaction ID: {$resultOpenai['interaction_id']}\n\n";
+
+    // --- Anthropic ---
+    $resultAnthropic = $client->askAnthropic(
+        systemInstruction: 'You are a concise assistant.',
+        messages: $messages,
+        model: 'claude-haiku-4-5'
+    );
+    // $resultAnthropic = [
+    //     'text'           => 'Your name is Mihamina.',
+    //     'interaction_id' => 'msg_013Zva5t95ca8ZgCr5ir561A'
+    // ]
+    echo "Anthropic:\n";
+    echo "  Response text : {$resultAnthropic['text']}\n";
+    echo "  Interaction ID: {$resultAnthropic['interaction_id']}\n\n";
+
+    // --- Google AI (Gemini) ---
+    // Important: Google AI expects 'model' as the assistant role instead of 'assistant'
     $geminiMessages = $messages;
     $geminiMessages[1]['role'] = 'model';
     $resultGoogle = $client->askGoogleAi(
@@ -391,34 +253,101 @@ try {
         messages: $geminiMessages,
         model: 'gemini-3.5-flash'
     );
-    echo "Gemini (ID: {$resultGoogle['interaction_id']}): {$resultGoogle['text']}\n";
+    // $resultGoogle = [
+    //     'text'           => 'Your name is Mihamina.',
+    //     'interaction_id' => 'interaction_01j2a3b4c5d6e7f8g9h0i1j2k3'
+    // ]
+    echo "Google AI:\n";
+    echo "  Response text : {$resultGoogle['text']}\n";
+    echo "  Interaction ID: {$resultGoogle['interaction_id']}\n\n";
 
-    // 2. OpenAI
-    $resultOpenai = $client->askOpenai(
-        systemInstruction: 'You are a concise assistant.',
-        messages: $messages,
-        model: 'gpt-5.4-mini'
-    );
-    echo "OpenAI (ID: {$resultOpenai['interaction_id']}): {$resultOpenai['text']}\n";
-
-    // 3. Anthropic
-    $resultAnthropic = $client->askAnthropic(
-        systemInstruction: 'You are a concise assistant.',
-        messages: $messages,
-        model: 'claude-haiku-4-5'
-    );
-    echo "Anthropic (ID: {$resultAnthropic['interaction_id']}): {$resultAnthropic['text']}\n";
-
-    // 4. DeepSeek
+    // --- DeepSeek ---
     $resultDeepseek = $client->askDeepSeek(
         systemInstruction: 'You are a concise assistant.',
         messages: $messages,
         model: 'deepseek-chat'
     );
-    echo "DeepSeek (ID: {$resultDeepseek['interaction_id']}): {$resultDeepseek['text']}\n";
+    // $resultDeepseek = [
+    //     'text'           => 'Your name is Mihamina.',
+    //     'interaction_id' => 'chatcmpl-765f34bdde23405786ba11cc986d34e1'
+    // ]
+    echo "DeepSeek:\n";
+    echo "  Response text : {$resultDeepseek['text']}\n";
+    echo "  Interaction ID: {$resultDeepseek['interaction_id']}\n\n";
 
 } catch (Exception $e) {
     echo "API Error: " . $e->getMessage() . "\n";
+}
+```
+
+### 4. Working with the Output
+
+#### Accessing the text response
+
+```php
+$result = $client->askOpenai(
+    systemInstruction: 'Translate to French.',
+    messages: [['role' => 'user', 'content' => 'Hello, how are you?']],
+    model: 'gpt-5.4-mini'
+);
+
+// The 'text' key always contains the model's generated text as a plain string
+$generatedText = $result['text'];
+// e.g. "Bonjour, comment allez-vous ?"
+
+echo $generatedText;
+```
+
+#### Using the interaction ID for logging
+
+```php
+$result = $client->askAnthropic(
+    systemInstruction: 'You are a helpful assistant.',
+    messages: [['role' => 'user', 'content' => 'Explain PHP closures.']],
+    model: 'claude-haiku-4-5'
+);
+
+// Log the interaction for auditing or debugging
+$logEntry = sprintf(
+    "[%s] Provider: Anthropic | ID: %s | Response length: %d chars\n",
+    date('Y-m-d H:i:s'),
+    $result['interaction_id'] ?? 'N/A',
+    strlen($result['text'])
+);
+file_put_contents('api_calls.log', $logEntry, FILE_APPEND);
+```
+
+#### Building a multi-turn conversation loop
+
+```php
+$client = new AiApiClient(openaiApiKey: null);
+$history = [];
+$systemPrompt = 'You are a helpful coding assistant.';
+
+// Simulate a multi-turn conversation
+$userQuestions = [
+    'What is a PHP generator?',
+    'Can you give me a simple example?',
+    'How does it differ from returning an array?'
+];
+
+foreach ($userQuestions as $question) {
+    // Append user message to history
+    $history[] = ['role' => 'user', 'content' => $question];
+
+    // Send conversation to the API
+    $result = $client->askOpenai(
+        systemInstruction: $systemPrompt,
+        messages: $history,
+        model: 'gpt-5.4-mini'
+    );
+
+    // Append assistant response to history for the next turn
+    $history[] = ['role' => 'assistant', 'content' => $result['text']];
+
+    echo "User: {$question}\n";
+    echo "Assistant: {$result['text']}\n";
+    echo "--- (ID: {$result['interaction_id']})\n\n";
 }
 ```
 
@@ -426,7 +355,7 @@ try {
 
 ## Error Handling
 
-All client functions and OOP methods throw a standard `Exception` under any of the following failure scenarios:
+All OOP methods throw a standard `Exception` under any of the following failure scenarios:
 1. **Missing Authentication**: The API key could not be resolved from the arguments or the environment variables.
 2. **cURL Initialization/Execution Failure**: Issues with the socket, DNS resolution, or payload generation during connection.
 3. **Invalid API Payload Response**: The provider returned a non-JSON body or the body could not be decoded.
