@@ -7,42 +7,78 @@ require_once __DIR__ . '/openai-client.php';
 // php openai/example.php
 
 try {
-    $instruction = "You are a poetic assistant. Answer in rhyme.";
-    $prompt = "Explain why the sky is blue in one sentence.";
+    $instruction = "You are a helpful assistant.";
     $model = "gpt-5.4-mini"; // User's preferred model
+    $messages = [];
 
-    echo "Sending request to OpenAI Responses API...\n";
-    echo "Model: $model\n";
-    echo "System Instruction: $instruction\n";
-    echo "Prompt: $prompt\n\n";
+    echo "Starting a 3-turn conversation with model: $model\n";
+    echo "System Instruction: $instruction\n\n";
 
-    // Call the response creation
-    $response = call_openai_response($instruction, $prompt, $model);
+    // --- Turn 1 ---
+    $prompt1 = "My name is Mihamina";
+    echo "Turn 1 - User: $prompt1\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt1];
 
-    echo "Response ID: " . ($response['id'] ?? 'N/A') . "\n\n";
-    echo "Processing response output:\n";
+    $response1 = call_openai_response($instruction, $messages, $model);
 
-    // Traverse the output items schema to extract the text output
-    $outputText = '';
-    if (!empty($response['output'])) {
-        foreach ($response['output'] as $stepIndex => $item) {
-            $type = $item['type'] ?? 'unknown';
-            echo "Step [$stepIndex] Type: $type\n";
-
-            if ($type === 'message' && !empty($item['content'])) {
+    // Extract text response from OpenAI's output items schema
+    $outputText1 = '';
+    if (!empty($response1['output'])) {
+        foreach ($response1['output'] as $item) {
+            if (($item['type'] ?? '') === 'message' && !empty($item['content'])) {
                 foreach ($item['content'] as $contentItem) {
                     if (($contentItem['type'] ?? '') === 'output_text') {
-                        $outputText .= $contentItem['text'] ?? '';
+                        $outputText1 .= $contentItem['text'] ?? '';
                     }
                 }
             }
         }
     }
+    echo "Turn 1 - Model: $outputText1\n\n";
+    $messages[] = ['role' => 'assistant', 'content' => $outputText1];
 
-    echo "\nFinal Answer:\n";
-    echo "----------------------------------------\n";
-    echo $outputText . "\n";
-    echo "----------------------------------------\n";
+    // --- Turn 2 ---
+    $prompt2 = "What color is the sky?";
+    echo "Turn 2 - User: $prompt2\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt2];
+
+    $response2 = call_openai_response($instruction, $messages, $model);
+
+    $outputText2 = '';
+    if (!empty($response2['output'])) {
+        foreach ($response2['output'] as $item) {
+            if (($item['type'] ?? '') === 'message' && !empty($item['content'])) {
+                foreach ($item['content'] as $contentItem) {
+                    if (($contentItem['type'] ?? '') === 'output_text') {
+                        $outputText2 .= $contentItem['text'] ?? '';
+                    }
+                }
+            }
+        }
+    }
+    echo "Turn 2 - Model: $outputText2\n\n";
+    $messages[] = ['role' => 'assistant', 'content' => $outputText2];
+
+    // --- Turn 3 ---
+    $prompt3 = "What is my name?";
+    echo "Turn 3 - User: $prompt3\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt3];
+
+    $response3 = call_openai_response($instruction, $messages, $model);
+
+    $outputText3 = '';
+    if (!empty($response3['output'])) {
+        foreach ($response3['output'] as $item) {
+            if (($item['type'] ?? '') === 'message' && !empty($item['content'])) {
+                foreach ($item['content'] as $contentItem) {
+                    if (($contentItem['type'] ?? '') === 'output_text') {
+                        $outputText3 .= $contentItem['text'] ?? '';
+                    }
+                }
+            }
+        }
+    }
+    echo "Turn 3 - Model: $outputText3\n\n";
 
 } catch (Exception $e) {
     echo "Error occurred: " . $e->getMessage() . "\n";

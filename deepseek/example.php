@@ -7,36 +7,66 @@ require_once __DIR__ . '/deepseek-client.php';
 // php deepseek/example.php
 
 try {
-    $instruction = "You are a poetic assistant. Answer in rhyme.";
-    $prompt = "Explain why the sky is blue in one sentence.";
+    $instruction = "You are a helpful assistant.";
     $model = "deepseek-chat"; // User's preferred model
+    $messages = [];
 
-    echo "Sending request to DeepSeek Chat Completions API...\n";
-    echo "Model: $model\n";
-    echo "System Instruction: $instruction\n";
-    echo "Prompt: $prompt\n\n";
+    echo "Starting a 3-turn conversation with model: $model\n";
+    echo "System Instruction: $instruction\n\n";
 
-    // Call the chat completion
-    $response = call_deepseek_chat($instruction, $prompt, $model);
+    // --- Turn 1 ---
+    $prompt1 = "My name is Mihamina";
+    echo "Turn 1 - User: $prompt1\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt1];
 
-    echo "Response ID: " . ($response['id'] ?? 'N/A') . "\n\n";
-    echo "Processing response output:\n";
+    $response1 = call_deepseek_chat($instruction, $messages, $model);
 
-    // Extract and print the output text
-    $outputText = '';
-    if (!empty($response['choices'])) {
-        foreach ($response['choices'] as $choiceIndex => $choice) {
-            echo "Choice [$choiceIndex] Finish Reason: " . ($choice['finish_reason'] ?? 'unknown') . "\n";
+    // Extract text response from DeepSeek's choices schema
+    $outputText1 = '';
+    if (!empty($response1['choices'])) {
+        foreach ($response1['choices'] as $choice) {
             if (isset($choice['message']['content'])) {
-                $outputText .= $choice['message']['content'];
+                $outputText1 .= $choice['message']['content'];
             }
         }
     }
+    echo "Turn 1 - Model: $outputText1\n\n";
+    $messages[] = ['role' => 'assistant', 'content' => $outputText1];
 
-    echo "\nFinal Answer:\n";
-    echo "----------------------------------------\n";
-    echo $outputText . "\n";
-    echo "----------------------------------------\n";
+    // --- Turn 2 ---
+    $prompt2 = "What color is the sky?";
+    echo "Turn 2 - User: $prompt2\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt2];
+
+    $response2 = call_deepseek_chat($instruction, $messages, $model);
+
+    $outputText2 = '';
+    if (!empty($response2['choices'])) {
+        foreach ($response2['choices'] as $choice) {
+            if (isset($choice['message']['content'])) {
+                $outputText2 .= $choice['message']['content'];
+            }
+        }
+    }
+    echo "Turn 2 - Model: $outputText2\n\n";
+    $messages[] = ['role' => 'assistant', 'content' => $outputText2];
+
+    // --- Turn 3 ---
+    $prompt3 = "What is my name?";
+    echo "Turn 3 - User: $prompt3\n";
+    $messages[] = ['role' => 'user', 'content' => $prompt3];
+
+    $response3 = call_deepseek_chat($instruction, $messages, $model);
+
+    $outputText3 = '';
+    if (!empty($response3['choices'])) {
+        foreach ($response3['choices'] as $choice) {
+            if (isset($choice['message']['content'])) {
+                $outputText3 .= $choice['message']['content'];
+            }
+        }
+    }
+    echo "Turn 3 - Model: $outputText3\n\n";
 
 } catch (Exception $e) {
     echo "Error occurred: " . $e->getMessage() . "\n";
