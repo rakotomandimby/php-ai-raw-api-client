@@ -23,16 +23,22 @@ function call_gemini_interaction(string $instruction, array $messages, string $m
     // Build the request payload
     $contents = [];
     foreach ($messages as $msg) {
+        $stepType = ($msg['role'] === 'user') ? 'user_input' : 'model_output';
         $contents[] = [
-            'role' => $msg['role'],
-            'parts' => [['text' => $msg['content']]],
+            'type' => $stepType,
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => $msg['content'],
+                ]
+            ],
         ];
     }
 
     $payload = [
         'model' => $model,
         'store' => false,
-        'contents' => $contents,
+        'input' => $contents,
     ];
 
     if ($instruction !== '') {
