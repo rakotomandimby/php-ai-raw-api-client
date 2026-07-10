@@ -9,86 +9,130 @@ require_once __DIR__ . '/deepseek/deepseek-client.php';
 
 class AiApiClient
 {
-  private ?string $openaiApiKey;
-  private ?string $anthropicApiKey;
-  private ?string $googleAiApiKey;
-  private ?string $deepseekApiKey;
+    private ?string $openaiApiKey;
+    private ?string $anthropicApiKey;
+    private ?string $googleAiApiKey;
+    private ?string $deepseekApiKey;
 
-  public function __construct(
-    ?string $openaiApiKey = null,
-    ?string $anthropicApiKey = null,
-    ?string $googleAiApiKey = null,
-    ?string $deepseekApiKey = null
-  ) {
-    $this->openaiApiKey = $openaiApiKey;
-    $this->anthropicApiKey = $anthropicApiKey;
-    $this->googleAiApiKey = $googleAiApiKey;
-    $this->deepseekApiKey = $deepseekApiKey;
+    public function __construct(
+        ?string $openaiApiKey = null,
+        ?string $anthropicApiKey = null,
+        ?string $googleAiApiKey = null,
+        ?string $deepseekApiKey = null
+    ) {
+        $this->openaiApiKey    = $openaiApiKey;
+        $this->anthropicApiKey = $anthropicApiKey;
+        $this->googleAiApiKey  = $googleAiApiKey;
+        $this->deepseekApiKey  = $deepseekApiKey;
     }
 
-    public function askGoogleAi(string $systemInstruction, string $userPrompt, string $model): string
+    /**
+     * Sends a multi-turn conversation to Google AI (Gemini).
+     *
+     * @param string $systemInstruction The system instruction.
+     * @param array  $messages          Provider-agnostic messages: [['role' => '...', 'content' => '...'], ...]
+     * @param string $model             Model name.
+     * @return array Uniform response: ['text' => string, 'interaction_id' => string|null]
+     */
+    public function askGoogleAi(string $systemInstruction, array $messages, string $model): array
     {
-      $response = call_gemini_interaction(
-        $systemInstruction,
-        $userPrompt,
-        $model,
-        $this->googleAiApiKey
+        $response = call_gemini_interaction(
+            $systemInstruction,
+            $messages,
+            $model,
+            $this->googleAiApiKey
         );
 
-      return $this->extractGoogleAiText($response);
+        return [
+            'text'           => $this->extractGoogleAiText($response),
+            'interaction_id' => $response['id'] ?? null,
+        ];
     }
 
-    public function askOpenai(string $systemInstruction, string $userPrompt, string $model): string
+    /**
+     * Sends a multi-turn conversation to OpenAI.
+     *
+     * @param string $systemInstruction The system instruction.
+     * @param array  $messages          Provider-agnostic messages: [['role' => '...', 'content' => '...'], ...]
+     * @param string $model             Model name.
+     * @return array Uniform response: ['text' => string, 'interaction_id' => string|null]
+     */
+    public function askOpenai(string $systemInstruction, array $messages, string $model): array
     {
-      $response = call_openai_response(
-        $systemInstruction,
-        $userPrompt,
-        $model,
-        $this->openaiApiKey
+        $response = call_openai_response(
+            $systemInstruction,
+            $messages,
+            $model,
+            $this->openaiApiKey
         );
 
-      return $this->extractOpenaiText($response);
+        return [
+            'text'           => $this->extractOpenaiText($response),
+            'interaction_id' => $response['id'] ?? null,
+        ];
     }
 
-    public function askAnthropic(string $systemInstruction, string $userPrompt, string $model): string
+    /**
+     * Sends a multi-turn conversation to Anthropic (Claude).
+     *
+     * @param string $systemInstruction The system instruction.
+     * @param array  $messages          Provider-agnostic messages: [['role' => '...', 'content' => '...'], ...]
+     * @param string $model             Model name.
+     * @return array Uniform response: ['text' => string, 'interaction_id' => string|null]
+     */
+    public function askAnthropic(string $systemInstruction, array $messages, string $model): array
     {
-      $response = call_anthropic_message(
-        $systemInstruction,
-        $userPrompt,
-        $model,
-        $this->anthropicApiKey
+        $response = call_anthropic_message(
+            $systemInstruction,
+            $messages,
+            $model,
+            $this->anthropicApiKey
         );
 
-      return $this->extractAnthropicText($response);
+        return [
+            'text'           => $this->extractAnthropicText($response),
+            'interaction_id' => $response['id'] ?? null,
+        ];
     }
 
-    public function askDeepSeek(string $systemInstruction, string $userPrompt, string $model): string
+    /**
+     * Sends a multi-turn conversation to DeepSeek.
+     *
+     * @param string $systemInstruction The system instruction.
+     * @param array  $messages          Provider-agnostic messages: [['role' => '...', 'content' => '...'], ...]
+     * @param string $model             Model name.
+     * @return array Uniform response: ['text' => string, 'interaction_id' => string|null]
+     */
+    public function askDeepSeek(string $systemInstruction, array $messages, string $model): array
     {
-      $response = call_deepseek_chat(
-        $systemInstruction,
-        $userPrompt,
-        $model,
-        $this->deepseekApiKey
+        $response = call_deepseek_chat(
+            $systemInstruction,
+            $messages,
+            $model,
+            $this->deepseekApiKey
         );
 
-      return $this->extractDeepSeekText($response);
+        return [
+            'text'           => $this->extractDeepSeekText($response),
+            'interaction_id' => $response['id'] ?? null,
+        ];
     }
 
     private function extractGoogleAiText(array $response): string
     {
-      $outputText = '';
+        $outputText = '';
 
-      if (!empty($response['steps'])) {
-        foreach ($response['steps'] as $step) {
-          $type = $step['type'] ?? '';
+        if (!empty($response['steps'])) {
+            foreach ($response['steps'] as $step) {
+                $type = $step['type'] ?? '';
 
-          if ($type !== 'model_output' || empty($step['content'])) {
-            continue;
+                if ($type !== 'model_output' || empty($step['content'])) {
+                    continue;
                 }
 
                 foreach ($step['content'] as $contentItem) {
-                  if (($contentItem['type'] ?? '') === 'text') {
-                    $outputText .= $contentItem['text'] ?? '';
+                    if (($contentItem['type'] ?? '') === 'text') {
+                        $outputText .= $contentItem['text'] ?? '';
                     }
                 }
             }
@@ -99,19 +143,19 @@ class AiApiClient
 
     private function extractOpenaiText(array $response): string
     {
-      $outputText = '';
+        $outputText = '';
 
-      if (!empty($response['output'])) {
-        foreach ($response['output'] as $item) {
-          $type = $item['type'] ?? '';
+        if (!empty($response['output'])) {
+            foreach ($response['output'] as $item) {
+                $type = $item['type'] ?? '';
 
-          if ($type !== 'message' || empty($item['content'])) {
-            continue;
+                if ($type !== 'message' || empty($item['content'])) {
+                    continue;
                 }
 
                 foreach ($item['content'] as $contentItem) {
-                  if (($contentItem['type'] ?? '') === 'output_text') {
-                    $outputText .= $contentItem['text'] ?? '';
+                    if (($contentItem['type'] ?? '') === 'output_text') {
+                        $outputText .= $contentItem['text'] ?? '';
                     }
                 }
             }
@@ -122,12 +166,12 @@ class AiApiClient
 
     private function extractAnthropicText(array $response): string
     {
-      $outputText = '';
+        $outputText = '';
 
-      if (!empty($response['content'])) {
-        foreach ($response['content'] as $contentItem) {
-          if (($contentItem['type'] ?? '') === 'text') {
-            $outputText .= $contentItem['text'] ?? '';
+        if (!empty($response['content'])) {
+            foreach ($response['content'] as $contentItem) {
+                if (($contentItem['type'] ?? '') === 'text') {
+                    $outputText .= $contentItem['text'] ?? '';
                 }
             }
         }
@@ -137,16 +181,16 @@ class AiApiClient
 
     private function extractDeepSeekText(array $response): string
     {
-      $outputText = '';
+        $outputText = '';
 
-      if (!empty($response['choices'])) {
-        foreach ($response['choices'] as $choice) {
-          if (isset($choice['message']['content'])) {
-            $outputText .= $choice['message']['content'];
-          }
+        if (!empty($response['choices'])) {
+            foreach ($response['choices'] as $choice) {
+                if (isset($choice['message']['content'])) {
+                    $outputText .= $choice['message']['content'];
+                }
+            }
         }
-      }
 
-      return $outputText;
+        return $outputText;
     }
 }
