@@ -1,16 +1,17 @@
 <?php
 
 /**
- * Calls the OpenAI Responses API.
+ * Calls the OpenAI Responses API with multi-turn conversation support.
  *
  * @param string $instruction The system instruction to steer the model's behavior.
- * @param string $prompt The user prompt/input for the model.
- * @param string $model The model name (e.g., 'gpt-4o').
+ * @param array  $messages    The conversation history. Each entry must be a provider-agnostic
+ *                            array with 'role' (e.g. 'user' or 'assistant') and 'content' keys.
+ * @param string $model       The model name (e.g., 'gpt-4o').
  * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the OPENAI_API_KEY environment variable.
  * @return array The decoded JSON response from the API.
  * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
  */
-function call_openai_response(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
+function call_openai_response(string $instruction, array $messages, string $model, ?string $apiKey = null): array
 {
     // Resolve the API key
     $apiKey = $apiKey ?? getenv('OPENAI_API_KEY');
@@ -20,10 +21,21 @@ function call_openai_response(string $instruction, string $prompt, string $model
 
     $url = 'https://api.openai.com/v1/responses';
 
+    // Map provider-agnostic messages to OpenAI Responses API format.
+    // 'store' is set to false to keep conversation history fully client-side.
+    $input = [];
+    foreach ($messages as $msg) {
+        $input[] = [
+            'role'    => $msg['role'],
+            'content' => $msg['content'],
+        ];
+    }
+
     // Build the request payload
     $payload = [
         'model' => $model,
-        'input' => $prompt,
+        'input' => $input,
+        'store' => false,
     ];
 
     if ($instruction !== '') {

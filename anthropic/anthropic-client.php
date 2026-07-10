@@ -1,22 +1,24 @@
 <?php
 
 /**
- * Calls the Anthropic Messages API.
+ * Calls the Anthropic Messages API with multi-turn conversation support.
  *
  * @param string $instruction The system instruction to steer the model's behavior.
- * @param string $prompt The user prompt/input for the model.
- * @param string $model The model name (e.g., 'claude-opus-4-5').
+ * @param array  $messages    The conversation history. Each entry must be a provider-agnostic
+ *                            array with 'role' (e.g. 'user' or 'assistant') and 'content' keys.
+ * @param string $model       The model name (e.g., 'claude-sonnet-4-6').
  * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the ANTHROPIC_API_KEY environment variable.
  * @return array The decoded JSON response from the API.
  * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
  */
-function call_anthropic_message(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
+function call_anthropic_message(string $instruction, array $messages, string $model, ?string $apiKey = null): array
 {
     $max_tokens = [
         'claude-haiku-4-5' => 64000,
         'claude-sonnet-4-6' => 64000,
         'claude-opus-4-8' => 128000
-];
+    ];
+
     // Resolve the API key
     $apiKey = $apiKey ?? getenv('ANTHROPIC_API_KEY');
     if (empty($apiKey)) {
@@ -25,16 +27,21 @@ function call_anthropic_message(string $instruction, string $prompt, string $mod
 
     $url = 'https://api.anthropic.com/v1/messages';
 
+    // Map provider-agnostic messages to Anthropic's format.
+    // Anthropic uses the same ['role', 'content'] structure, so this is a direct pass-through.
+    $anthropicMessages = [];
+    foreach ($messages as $msg) {
+        $anthropicMessages[] = [
+            'role'    => $msg['role'],
+            'content' => $msg['content'],
+        ];
+    }
+
     // Build the request payload
     $payload = [
         'model'      => $model,
-        'max_tokens' => $max_tokens[$model] ?? 64000, 
-        'messages'   => [
-            [
-                'role'    => 'user',
-                'content' => $prompt,
-            ],
-        ],
+        'max_tokens' => $max_tokens[$model] ?? 64000,
+        'messages'   => $anthropicMessages,
     ];
 
     if ($instruction !== '') {

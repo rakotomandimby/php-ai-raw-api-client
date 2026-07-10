@@ -4,13 +4,13 @@
  * Calls the Google Gemini Interactions API using the "steps" schema.
  *
  * @param string $instruction The system instruction to steer the model's behavior.
- * @param string $prompt The user prompt/input for the model.
+ * @param array $messages The chat conversation history.
  * @param string $model The model name (e.g., 'gemini-3.5-flash').
  * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the GEMINI_API_KEY environment variable.
  * @return array The decoded JSON response from the API.
  * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
  */
-function call_gemini_interaction(string $instruction, string $prompt, string $model, ?string $apiKey = null): array
+function call_gemini_interaction(string $instruction, array $messages, string $model, ?string $apiKey = null): array
 {
     // Resolve the API key
     $apiKey = $apiKey ?? getenv('GOOGLEAI_API_KEY');
@@ -21,9 +21,18 @@ function call_gemini_interaction(string $instruction, string $prompt, string $mo
     $url = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
     // Build the request payload
+    $contents = [];
+    foreach ($messages as $msg) {
+        $contents[] = [
+            'role' => $msg['role'],
+            'parts' => [['text' => $msg['content']]],
+        ];
+    }
+
     $payload = [
         'model' => $model,
-        'input' => $prompt,
+        'store' => false,
+        'contents' => $contents,
     ];
 
     if ($instruction !== '') {
