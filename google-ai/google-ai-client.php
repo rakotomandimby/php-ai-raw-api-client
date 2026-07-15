@@ -73,7 +73,7 @@ function call_gemini_interaction(string $instruction, array $messages, string $m
         'x-goog-api-key: ' . $apiKey,
     ]);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 180);
 
     // Execute the request
     $response = curl_exec($ch);

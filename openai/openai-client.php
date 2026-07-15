@@ -66,7 +66,7 @@ function call_openai_response(string $instruction, array $messages, string $mode
         'Authorization: Bearer ' . $apiKey,
     ]);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 180);
 
     // Execute the request
     $response = curl_exec($ch);

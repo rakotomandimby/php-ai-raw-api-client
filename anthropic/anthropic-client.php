@@ -72,7 +72,7 @@ function call_anthropic_message(string $instruction, array $messages, string $mo
         'anthropic-version: 2023-06-01',
     ]);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 180);
 
     // Execute the request
     $response = curl_exec($ch);
