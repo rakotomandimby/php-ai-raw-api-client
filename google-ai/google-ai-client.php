@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Calls the Google Gemini Interactions API using the "steps" schema.
+ * Calls the Google Vertex AI generateContent API with multi-turn conversation support.
  *
  * @param string $instruction The system instruction to steer the model's behavior.
  * @param array $messages The chat conversation history.
- * @param string $model The model name (e.g., 'gemini-3.5-flash').
- * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the GEMINI_API_KEY environment variable.
+ * @param string $model The model name (e.g., 'gemini-2.5-flash-lite').
+ * @param string|null $apiKey Optional API key. If not provided, it attempts to read from the GOOGLEAI_API_KEY environment variable.
  * @return array The decoded JSON response from the API.
  * @throws Exception If the API key is missing, if cURL fails, or if the API returns an error.
  */
@@ -18,38 +18,41 @@ function call_gemini_interaction(string $instruction, array $messages, string $m
         throw new Exception('Gemini API key is required. Please provide it or set the GOOGLEAI_API_KEY environment variable.');
     }
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+    $url = 'https://aiplatform.googleapis.com/v1/publishers/google/models/' . rawurlencode($model) . ':generateContent?key=' . rawurlencode($apiKey);
 
-    // Build the request payload
+    // Build the request contents
     $contents = [];
     foreach ($messages as $msg) {
-        $stepType = ($msg['role'] === 'user') ? 'user_input' : 'model_output';
+        $role = ($msg['role'] === 'assistant' || $msg['role'] === 'model') ? 'model' : 'user';
         $contents[] = [
-            'type' => $stepType,
-            'content' => [
+            'role' => $role,
+            'parts' => [
                 [
-                    'type' => 'text',
                     'text' => $msg['content'],
-                ]
+                ],
             ],
         ];
     }
 
     $payload = [
-        'model' => $model,
-        'store' => false,
-        'input' => $contents,
+        'contents' => $contents,
     ];
 
     if ($instruction !== '') {
-        $payload['system_instruction'] = $instruction; 
+        $payload['systemInstruction'] = [
+            'parts' => [
+                [
+                    'text' => $instruction,
+                ],
+            ],
+        ];
     }
 
     // Hardcode generation configuration parameters as per requirement
-    $payload['generation_config'] = [
+    $payload['generationConfig'] = [
         'temperature' => 0.7,
-        'top_p' => 0.95,
-        'max_output_tokens' => 64000,
+        'topP' => 0.95,
+        'maxOutputTokens' => 64000,
     ];
 
     // Initialize cURL
@@ -69,8 +72,6 @@ function call_gemini_interaction(string $instruction, array $messages, string $m
     curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'Api-Revision: 2026-05-20',
-        'x-goog-api-key: ' . $apiKey,
     ]);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 180);
@@ -99,3 +100,4 @@ function call_gemini_interaction(string $instruction, array $messages, string $m
 
     return $decoded;
 }
+

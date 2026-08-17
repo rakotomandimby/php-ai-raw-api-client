@@ -45,7 +45,7 @@ class AiApiClient
 
         return [
             'text'           => $this->extractGoogleAiText($response),
-            'interaction_id' => $response['id'] ?? null,
+            'interaction_id' => $response['responseId'] ?? ($response['id'] ?? null),
         ];
     }
 
@@ -122,17 +122,13 @@ class AiApiClient
     {
         $outputText = '';
 
-        if (!empty($response['steps'])) {
-            foreach ($response['steps'] as $step) {
-                $type = $step['type'] ?? '';
-
-                if ($type !== 'model_output' || empty($step['content'])) {
-                    continue;
-                }
-
-                foreach ($step['content'] as $contentItem) {
-                    if (($contentItem['type'] ?? '') === 'text') {
-                        $outputText .= $contentItem['text'] ?? '';
+        if (!empty($response['candidates'])) {
+            foreach ($response['candidates'] as $candidate) {
+                if (!empty($candidate['content']['parts'])) {
+                    foreach ($candidate['content']['parts'] as $part) {
+                        if (isset($part['text'])) {
+                            $outputText .= $part['text'];
+                        }
                     }
                 }
             }

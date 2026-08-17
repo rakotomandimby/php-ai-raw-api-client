@@ -8,7 +8,7 @@ require_once __DIR__ . '/google-ai-client.php';
 
 try {
     $instruction = "You are a helpful assistant.";
-    $model = "gemini-3.5-flash"; // User's preferred model
+    $model = "gemini-2.5-flash-lite"; // User's preferred model
     $messages = [];
 
     echo "Sending a 3-turn conversation to model: $model in a single API call\n";
@@ -30,14 +30,14 @@ try {
 
     $response = call_gemini_interaction($instruction, $messages, $model);
     
-    // Extract text response
+    // Extract text response from Vertex AI generateContent candidates schema
     $outputText = '';
-    if (!empty($response['steps'])) {
-        foreach ($response['steps'] as $step) {
-            if (($step['type'] ?? '') === 'model_output' && !empty($step['content'])) {
-                foreach ($step['content'] as $contentItem) {
-                    if (($contentItem['type'] ?? '') === 'text') {
-                        $outputText .= $contentItem['text'] ?? '';
+    if (!empty($response['candidates'])) {
+        foreach ($response['candidates'] as $candidate) {
+            if (!empty($candidate['content']['parts'])) {
+                foreach ($candidate['content']['parts'] as $part) {
+                    if (isset($part['text'])) {
+                        $outputText .= $part['text'];
                     }
                 }
             }
