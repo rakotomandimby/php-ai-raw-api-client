@@ -47,7 +47,10 @@ function call_deepseek_chat(string $instruction, array $messages, string $model,
     // Hardcode generation configuration parameters as per requirement
     $payload['temperature'] = 0.7;
     $payload['top_p'] = 0.95;
-
+    // I want to disable thinking with setting : {"thinking": {"type": "disabled"}}
+    $payload['thinking'] = ['type' => 'disabled'];
+    // I want to set the reasoning_effot to "low" with setting : {"reasoning_effort": "low"}
+    $payload['reasoning_effort'] = 'low';
     // Initialize cURL
     $ch = curl_init($url);
     if ($ch === false) {
