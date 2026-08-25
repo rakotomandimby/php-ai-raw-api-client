@@ -22,7 +22,7 @@ It is useful if you want a very small PHP starting point for provider integratio
 - [AiApiClient.php](file:///home/mihamina/Projects/php-ai-raw-api-client/AiApiClient.php) — The main Object-Oriented wrapper providing a unified interface across all providers.
 - [/openai/openai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/openai/openai-client.php) — Internal client calling the OpenAI `/v1/responses` API.
 - [/anthropic/anthropic-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/anthropic/anthropic-client.php) — Internal client calling the Anthropic Messages API.
-- [/google-ai/google-ai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/google-ai/google-ai-client.php) — Internal client calling the Google AI `/v1beta/interactions` API.
+- [/google-ai/google-ai-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/google-ai/google-ai-client.php) — Internal client calling the Google Vertex AI Gemini `:generateContent` API.
 - [/deepseek/deepseek-client.php](file:///home/mihamina/Projects/php-ai-raw-api-client/deepseek/deepseek-client.php) — Internal client calling the DeepSeek Chat Completions API.
 
 ## Requirements
@@ -38,7 +38,7 @@ It is useful if you want a very small PHP starting point for provider integratio
 | --- | --- | --- | --- | --- |
 | **OpenAI** | `askOpenai()` | `https://api.openai.com/v1/responses` | `OPENAI_API_KEY` | `Authorization: Bearer <KEY>` |
 | **Anthropic** | `askAnthropic()` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` | `x-api-key: <KEY>`, `anthropic-version: 2023-06-01` |
-| **Google AI** | `askGoogleAi()` | `https://generativelanguage.googleapis.com/v1beta/interactions` | `GOOGLEAI_API_KEY` | `x-goog-api-key: <KEY>`, `Api-Revision: 2026-05-20` |
+| **Google Vertex AI (Gemini)** | `askGoogleAi()` | `https://aiplatform.googleapis.com/v1/publishers/google/models/{model}:generateContent?key=<KEY>` | `GOOGLEAI_API_KEY` | API key passed as `key` query parameter |
 | **DeepSeek** | `askDeepSeek()` | `https://api.deepseek.com/chat/completions` | `DEEPSEEK_API_KEY` | `Authorization: Bearer <KEY>` |
 
 ### Default Request Settings (Hardcoded)
@@ -46,7 +46,7 @@ It is useful if you want a very small PHP starting point for provider integratio
 To keep the interface minimal, generation settings are hardcoded inside each client file:
 - **OpenAI**: `temperature=0.7`, `top_p=0.95`, `store=false`
 - **Anthropic**: `temperature=0.7`, model-specific `max_tokens` (64,000 for Haiku/Sonnet, 128,000 for Opus)
-- **Google AI**: `temperature=0.7`, `top_p=0.95`, `max_output_tokens=64000`, `store=false`
+- **Google Vertex AI (Gemini)**: `temperature=0.7`, `topP=0.95`, `maxOutputTokens=64000`
 - **DeepSeek**: `temperature=0.7`, `top_p=0.95`, `stream=false`
 
 ---
@@ -62,7 +62,7 @@ A `string` containing system instructions or guidelines to steer the model's beh
 How it maps internally per provider:
 - **OpenAI**: Mapped to the `"instructions"` field at the root of the payload.
 - **Anthropic**: Mapped to the `"system"` field at the root of the payload.
-- **Google AI**: Mapped to the `"system_instruction"` field at the root of the payload.
+- **Google Vertex AI (Gemini)**: Mapped to the `"systemInstruction"` field at the root of the payload.
 - **DeepSeek**: Prepended to the messages array as a message object with the role `"system"`.
 
 ### 2. The `$messages` Parameter (Conversation History)
@@ -79,7 +79,7 @@ Since different APIs expect different values for roles, the wrapper handles role
 | --- | --- | --- | --- |
 | **OpenAI** | `"user"` | `"assistant"` | Messages are passed directly in the `"input"` payload field. |
 | **Anthropic** | `"user"` | `"assistant"` | Anthropic requires the list to start with a `"user"` message and alternate strictly. |
-| **Google AI** | `"user"` | `"model"` | The client maps the messages directly to the Gemini API `"contents"` schema. |
+| **Google Vertex AI (Gemini)** | `"user"` | `"model"` | The client maps the messages directly to the Gemini API `"contents"` schema. |
 | **DeepSeek** | `"user"` | `"assistant"` | The client maps the messages directly, prepending the system prompt if set. |
 
 #### Message Input Structure Example
@@ -87,7 +87,7 @@ Since different APIs expect different values for roles, the wrapper handles role
 ```php
 $messages = [
     ['role' => 'user', 'content' => 'My name is Mihamina.'],
-    ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'], // Use 'model' role when calling Google AI
+    ['role' => 'assistant', 'content' => 'Hello Mihamina! How can I help you today?'], // Use 'model' role when calling Google Vertex AI
     ['role' => 'user', 'content' => 'What is my name?']
 ];
 ```
@@ -100,7 +100,7 @@ A `string` specifying the exact model identifier to use. Each provider has its o
 | --- | --- |
 | **OpenAI** | `'gpt-5.4-mini'`, `'gpt-5.4'` |
 | **Anthropic** | `'claude-haiku-4-5'`, `'claude-sonnet-4-5'`, `'claude-opus-4'` |
-| **Google AI** | `'gemini-3.5-flash'`, `'gemini-3.5-pro'` |
+| **Google Vertex AI (Gemini)** | `'gemini-3.5-flash'`, `'gemini-3.5-pro'` |
 | **DeepSeek** | `'deepseek-chat'`, `'deepseek-reasoner'` |
 
 ---
@@ -129,7 +129,7 @@ The full text content generated by the model. This value is extracted and concat
 Internally, the extraction logic varies per provider:
 - **OpenAI**: Iterates over `response['output']`, finds items where `type === 'message'`, then iterates over their `content` items and concatenates those where `type === 'output_text'`.
 - **Anthropic**: Iterates over `response['content']` and concatenates items where `type === 'text'`.
-- **Google AI**: Iterates over `response['steps']`, finds steps where `type === 'model_output'`, then iterates over their `content` items and concatenates those where `type === 'text'`.
+- **Google Vertex AI (Gemini)**: Iterates over `response['candidates']`, then over `candidate['content']['parts']`, and concatenates each `part['text']`.
 - **DeepSeek**: Iterates over `response['choices']` and concatenates the `message.content` value from each choice.
 
 #### `'interaction_id'` (string|null)
@@ -139,12 +139,12 @@ A unique identifier for the API response, as assigned by the provider. This is u
 - Referencing a specific response in support requests to the provider.
 - Correlating responses in multi-step workflows.
 
-The value is extracted from the `id` field of the raw provider response. If the provider does not return an `id` field, this will be `null`.
+The value is extracted from the raw provider response ID field (`responseId` for Vertex AI, `id` for the other providers). If an ID is unavailable, this will be `null`.
 
 Example values per provider:
 - **OpenAI**: `"resp_01j2a3b4c5d6e7f8g9h0i1j2k3"`
 - **Anthropic**: `"msg_013Zva5t95ca8ZgCr5ir561A"`
-- **Google AI**: `"interaction_01j2a3b4c5d6e7f8g9h0i1j2k3"`
+- **Google Vertex AI (Gemini)**: `"ABCD1234EFGH5678"` (from `responseId`, falling back to `id` when present)
 - **DeepSeek**: `"chatcmpl-765f34bdde23405786ba11cc986d34e1"`
 
 ---
@@ -244,8 +244,8 @@ try {
     echo "  Response text : {$resultAnthropic['text']}\n";
     echo "  Interaction ID: {$resultAnthropic['interaction_id']}\n\n";
 
-    // --- Google AI (Gemini) ---
-    // Important: Google AI expects 'model' as the assistant role instead of 'assistant'
+    // --- Google Vertex AI (Gemini) ---
+    // Important: Vertex AI expects 'model' as the assistant role instead of 'assistant'
     $geminiMessages = $messages;
     $geminiMessages[1]['role'] = 'model';
     $resultGoogle = $client->askGoogleAi(
@@ -255,9 +255,9 @@ try {
     );
     // $resultGoogle = [
     //     'text'           => 'Your name is Mihamina.',
-    //     'interaction_id' => 'interaction_01j2a3b4c5d6e7f8g9h0i1j2k3'
+    //     'interaction_id' => 'ABCD1234EFGH5678'
     // ]
-    echo "Google AI:\n";
+    echo "Google Vertex AI:\n";
     echo "  Response text : {$resultGoogle['text']}\n";
     echo "  Interaction ID: {$resultGoogle['interaction_id']}\n\n";
 
